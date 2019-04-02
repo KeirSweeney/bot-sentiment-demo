@@ -4,8 +4,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Configuration;
@@ -13,6 +17,7 @@ using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Rest;
 
 namespace BotSentimentDemo
 {
@@ -43,6 +48,17 @@ namespace BotSentimentDemo
         /// The <see cref="IConfiguration"/> that represents a set of key/value application configuration properties.
         /// </value>
         public IConfiguration Configuration { get; }
+        
+        private const string SubscriptionKey = ""; //Insert your Text Anaytics subscription key
+        
+        class ApiKeyServiceClientCredentials : ServiceClientCredentials
+        {
+            public override Task ProcessHttpRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                request.Headers.Add("Ocp-Apim-Subscription-Key", SubscriptionKey);
+                return base.ProcessHttpRequestAsync(request, cancellationToken);
+            }
+        }
 
         /// <summary>
         /// This method gets called by the runtime. Use this method to add services to the container.
@@ -75,6 +91,11 @@ namespace BotSentimentDemo
         ";
                 throw new InvalidOperationException(msg);
             }
+
+            services.AddSingleton<ITextAnalyticsClient>(x => new TextAnalyticsClient(new ApiKeyServiceClientCredentials())
+            {
+                Endpoint = "https://uksouth.api.cognitive.microsoft.com"
+            });
 
             services.AddSingleton(sp => botConfig ?? throw new InvalidOperationException($"The .bot configuration file could not be loaded. botFilePath: {botFilePath}"));
 

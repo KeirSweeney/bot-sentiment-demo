@@ -1,11 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
+using Microsoft.Azure.CognitiveServices.Language.TextAnalytics.Models;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
+using Microsoft.Rest;
 
 namespace BotSentimentDemo
 {
@@ -24,6 +29,8 @@ namespace BotSentimentDemo
     {
         private readonly BotSentimentDemoAccessors _accessors;
         private readonly ILogger _logger;
+        private ITextAnalyticsClient _textAnalyticsClient;
+
 
         /// <summary>
         /// Initializes a new instance of the class.
@@ -31,8 +38,10 @@ namespace BotSentimentDemo
         /// <param name="conversationState">The managed conversation state.</param>
         /// <param name="loggerFactory">A <see cref="ILoggerFactory"/> that is hooked to the Azure App Service provider.</param>
         /// <seealso cref="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-2.1#windows-eventlog-provider"/>
-        public BotSentimentDemoBot(ConversationState conversationState, ILoggerFactory loggerFactory)
+        public BotSentimentDemoBot(ConversationState conversationState, ILoggerFactory loggerFactory, ITextAnalyticsClient analyticsClient)
         {
+            _textAnalyticsClient = analyticsClient;
+            
             if (conversationState == null)
             {
                 throw new System.ArgumentNullException(nameof(conversationState));
@@ -51,7 +60,7 @@ namespace BotSentimentDemo
             _logger = loggerFactory.CreateLogger<BotSentimentDemoBot>();
             _logger.LogTrace("Turn start.");
         }
-
+        
         /// <summary>
         /// Every conversation turn for our Echo Bot will call this method.
         /// There are no dialogs used, since it's "single turn" processing, meaning a single
@@ -72,6 +81,15 @@ namespace BotSentimentDemo
             // see https://aka.ms/about-bot-activity-message to learn more about the message and other activity types
             if (turnContext.Activity.Type == ActivityTypes.Message)
             {
+
+                var result = await _textAnalyticsClient.SentimentAsync(false, new MultiLanguageBatchInput(
+                    new List<MultiLanguageInput>
+                    {
+                        new MultiLanguageInput("en", "0", turnContext.Activity.Text)
+                    }), cancellationToken);
+                
+                
+                
                 // Get the conversation state from the turn context.
                 var state = await _accessors.CounterState.GetAsync(turnContext, () => new CounterState());
 
